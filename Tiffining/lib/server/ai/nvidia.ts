@@ -213,7 +213,7 @@ function normalizeJevOutput(raw: unknown, model: string, inputTokens: number, ou
     for (const key of legendKeys) {
       cProbs[key] = Number((cProbs[key] / cSum).toFixed(4));
     }
-    const newCSum = legendKeys.reduce((a, k) => a + Number(cProbs[key]), 0);
+    const newCSum = legendKeys.reduce((a, k) => a + Number(cProbs[k]), 0);
     const diff = Number((1 - newCSum).toFixed(4));
     const targetKey = String(answers.clarity.score) in cProbs ? String(answers.clarity.score) : legendKeys[0];
     cProbs[targetKey] = Math.max(0, Math.min(1, Number((cProbs[targetKey] + diff).toFixed(4))));
