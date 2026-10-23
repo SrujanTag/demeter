@@ -13,7 +13,11 @@
     "owner:provision": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/provision-owner.ts",
     "seed:demo": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/seed-demo.ts",
     "api:spec": "node --import tsx scripts/api-spec.ts",
-    "test:ai:live": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/ai-live.ts"
+    "test:backend": "node --env-file-if-exists=.env --import tsx scripts/smoke-backend.ts",
+    "test:ai:live": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/ai-live.ts",
+    "eval:forecast": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/phase2-ops.ts evaluate",
+    "privacy:retention": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/phase2-ops.ts retention",
+    "runs:reconcile": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/phase2-ops.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
