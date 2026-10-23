@@ -22,12 +22,6 @@
 
 # User-requested ignored directories
 .agents
-tinnin-tally
-tinnin-tally*
-tiffin-tally
-tiffin-tally*
-tiffintally
-tiffintally*
 fo
 
 # Misc
