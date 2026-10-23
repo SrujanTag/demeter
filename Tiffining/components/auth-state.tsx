@@ -24,6 +24,22 @@ export function SignInCard() {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
 
+  async function devSignIn() {
+    setPending(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/dev/login", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      if (!response.ok) throw new Error("Dev sign-in failed.");
+      window.location.assign("/dashboard");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Dev sign-in failed.");
+      setPending(false);
+    }
+  }
+
   async function signIn() {
     setPending(true);
     setMessage("");
@@ -46,15 +62,42 @@ export function SignInCard() {
   }
 
   return (
-    <Card className="w-full min-w-0 max-w-md wrap-anywhere">
+    <Card className="w-full min-w-0 max-w-md wrap-anywhere shadow-lg border-primary/20">
       <CardHeader>
-        <CardTitle>Sign in to your workspace</CardTitle>
-        <CardDescription>Your seller data is private to your account.</CardDescription>
+        <CardTitle className="text-xl">Sign in to Tiffining</CardTitle>
+        <CardDescription>Access your kitchen dashboard, live board, and packing sheets.</CardDescription>
       </CardHeader>
       <CardContent className="flex min-w-0 flex-col gap-4">
-        <Button type="button" onClick={() => void signIn()} disabled={pending}>{pending ? "Opening Google…" : "Continue with Google"}</Button>
+        {/* Instant 1-Click Dev Sign-In */}
+        <Button
+          type="button"
+          size="lg"
+          className="w-full font-medium"
+          onClick={() => void devSignIn()}
+          disabled={pending}
+        >
+          {pending ? "Logging in…" : "⚡ 1-Click Demo Owner Sign-In"}
+        </Button>
+
+        <div className="relative my-2 flex items-center justify-center text-xs uppercase">
+          <span className="w-full border-t border-border" />
+          <span className="bg-card px-2 text-muted-foreground whitespace-nowrap">or google oauth</span>
+          <span className="w-full border-t border-border" />
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void signIn()}
+          disabled={pending}
+        >
+          {pending ? "Opening Google…" : "Continue with Google"}
+        </Button>
+
         {message ? <p className="text-sm text-destructive" role="alert">{message}</p> : null}
-        <p className="text-xs leading-5 text-muted-foreground">Use the Google account approved for this development workspace. Owner access is provisioned separately.</p>
+        <p className="text-xs leading-5 text-muted-foreground">
+          <strong>Tip:</strong> Use <em>1-Click Demo Owner Sign-In</em> for instant development testing. Google OAuth requires your real Google Cloud OAuth Client ID configured in <code>.env</code>.
+        </p>
       </CardContent>
     </Card>
   );
