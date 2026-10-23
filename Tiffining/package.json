@@ -16,6 +16,7 @@
     "test:backend": "node --env-file-if-exists=.env --import tsx scripts/smoke-backend.ts",
     "test:ai:live": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/ai-live.ts",
     "eval:forecast": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/phase2-ops.ts evaluate",
+    "session:generate": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/generate-session.ts",
     "privacy:retention": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/phase2-ops.ts retention",
     "runs:reconcile": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/phase2-ops.ts"
   },

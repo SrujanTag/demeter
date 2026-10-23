@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { outputSchemas, type OperationName } from "../lib/contracts/api";
+import { backendOutputSchemas as outputSchemas, type BackendOperationName as OperationName } from "../lib/contracts/backend";
 import { resultSchema } from "../lib/contracts/common";
 import { addDays, isServiceDate, localDateAt } from "../lib/domain/dates";
 import { endpointFor } from "../lib/client/endpoints";

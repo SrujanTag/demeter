@@ -19,6 +19,7 @@
 /.private/
 /.cache/
 /whatsapp-sessions/
+.demo-cookie
 
 # User-requested ignored directories
 .agents
