@@ -227,8 +227,7 @@ export async function handleIncomingWhatsAppMessage(payload: {
   // 6. Run NVIDIA NIM extraction & verification automatically
   try {
     const requestId = randomUUID();
-    const safeMsgId = payload.messageId.replace(/[^A-Za-z0-9_-]/g, "_");
-    const runKey = `wa_run_${safeMsgId}`.slice(0, 64);
+    const runKey = `wa_${source._id.replace(/-/g, "")}`.slice(0, 64);
     console.log(`[WhatsApp AI] 🤖 Dispatching NVIDIA NIM intelligence analysis for ${customer.alias}...`);
     const analysis = await executeIntelligenceOperation(
       "analyzeSource",
@@ -286,29 +285,42 @@ export async function handleIncomingWhatsAppMessage(payload: {
           );
         }
       } else {
-        console.log(`[WhatsApp Classification] ℹ️ NON-ORDER MESSAGE from ${customer.alias}: "${payload.text}".`);
-        console.log(`  Zero meal order operations found. Auto-dismissing from review queue.`);
+        // Only dismiss if the classification was explicitly unsupported/no_change
+        const isUnsupported = analysis.classificationId && await db.collection("classifications").findOne({
+          _id: analysis.classificationId,
+          "answers.intent.choice": { $in: ["unsupported", "no_change"] }
+        });
 
-        await db.collection<Source>("sources").updateOne(
-          { _id: source._id, sellerId: seller._id },
-          {
-            $set: {
-              status: "dismissed",
-              dispositionReason: "Non-order conversation / greeting (no meal operations)",
-            },
-            $inc: { revision: 1 },
-          }
-        );
+        if (isUnsupported) {
+          console.log(`[WhatsApp Classification] ℹ️ NON-ORDER MESSAGE from ${customer.alias}: "${payload.text}".`);
+          console.log(`  Zero meal order operations found. Auto-dismissing from review queue.`);
 
-        await db.collection<Proposal>("proposals").updateMany(
-          { _id: { $in: analysis.proposalIds }, sellerId: seller._id, "operations.0": { $exists: false } },
-          {
-            $set: {
-              status: "rejected",
-              dispositionReason: "Auto-dismissed: message contains no actionable order change",
-            },
-          }
-        );
+          await db.collection<Source>("sources").updateOne(
+            { _id: source._id, sellerId: seller._id },
+            {
+              $set: {
+                status: "dismissed",
+                dispositionReason: "Non-order conversation / greeting (no meal operations)",
+              },
+              $inc: { revision: 1 },
+            }
+          );
+
+          await db.collection<Proposal>("proposals").updateMany(
+            { _id: { $in: analysis.proposalIds }, sellerId: seller._id, "operations.0": { $exists: false } },
+            {
+              $set: {
+                status: "rejected",
+                dispositionReason: "Auto-dismissed: message contains no actionable order change",
+              },
+            }
+          );
+        } else {
+          // Keep in needs_review so the kitchen merchant can review on screen!
+          isOrderRelated = true;
+          console.log(`[WhatsApp Review] 📌 Message from ${customer.alias} requires manual review on dashboard.`);
+          replyText = `Hi ${payload.profileName}! We received your request: "${payload.text}". It has been added to our kitchen review queue.`;
+        }
       }
     } else {
       console.log(`[WhatsApp Classification] ℹ️ NON-ORDER MESSAGE from ${customer.alias}: "${payload.text}". 0 proposals generated.`);

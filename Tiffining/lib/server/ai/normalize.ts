@@ -6,8 +6,30 @@ export function normalizeDatePhrase(phrase: string | null, sentAt: string, timez
   if (phrase === null) return null;
   const originalDate = Temporal.Instant.from(sentAt).toZonedDateTimeISO(timezone).toPlainDate();
   const clean = phrase.trim().toLowerCase();
-  if (clean === "today" || /^today\b/.test(clean)) return originalDate.toString();
-  if (clean === "tomorrow" || /^tomorrow\b/.test(clean)) return originalDate.add({ days: 1 }).toString();
+
+  // Common Hindi / Hinglish & English relative dates
+  if (clean === "today" || clean === "aaj" || /^today\b/.test(clean) || /^aaj\b/.test(clean)) return originalDate.toString();
+  if (clean === "tomorrow" || clean === "kal" || /^tomorrow\b/.test(clean) || /^kal\b/.test(clean)) return originalDate.add({ days: 1 }).toString();
+  if (clean === "parso" || clean === "parson" || clean === "day after tomorrow" || /^parso\b/.test(clean)) return originalDate.add({ days: 2 }).toString();
+
+  // Weekdays (e.g. "friday", "this friday", "shukrawar", "somwar")
+  const weekdays: Record<string, number> = {
+    monday: 1, mon: 1, somwar: 1,
+    tuesday: 2, tue: 2, mangalwar: 2,
+    wednesday: 3, wed: 3, budhwar: 3,
+    thursday: 4, thu: 4, guruwar: 4, veervar: 4,
+    friday: 5, fri: 5, shukrawar: 5,
+    saturday: 6, sat: 6, shaniwar: 6,
+    sunday: 7, sun: 7, raviwar: 7,
+  };
+  for (const [dayName, dayNum] of Object.entries(weekdays)) {
+    if (new RegExp(`\\b${dayName}\\b`, "i").test(clean)) {
+      let diff = (dayNum - originalDate.dayOfWeek + 7) % 7;
+      if (diff === 0) diff = 7; // Next occurrence
+      return originalDate.add({ days: diff }).toString();
+    }
+  }
+
   // Unambiguous ISO dates + today/tomorrow; locale-specific dates require review.
   if (!/^\d{4}-\d{2}-\d{2}$/.test(clean)) return null;
   try {

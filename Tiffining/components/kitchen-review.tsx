@@ -29,8 +29,10 @@ function ErrorNote({ error, retry }: { error: unknown; retry: () => void }) { re
 
 export function KitchenReview({ sources, proposals, customers, capabilities, selectedDate, timezone, setSourceId, setProposalId, setConsentSourceId, compact = false }: Props) {
   const aliases = new Map(customers.data?.items.map((customer) => [customer._id, customer.alias]) ?? []);
-  const sourceRows = compact ? sources.data?.items.slice(0, 3) : sources.data?.items;
-  const proposalRows = compact ? proposals.data?.items.slice(0, 3) : proposals.data?.items;
+  const allSources = [...(sources.data?.items ?? [])].reverse();
+  const allProposals = [...(proposals.data?.items ?? [])].reverse();
+  const sourceRows = compact ? allSources.slice(0, 3) : allSources;
+  const proposalRows = compact ? allProposals.slice(0, 3) : allProposals;
   return <section aria-label="Meal request review" className="grid min-w-0 gap-10 wrap-anywhere xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-12">
     <section aria-labelledby={compact ? "incoming-preview" : "incoming-full"} className="min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4"><div><p className="mb-2 font-mono text-[10px] tracking-[0.15em] text-muted-foreground">02 / INCOMING REQUESTS</p><h2 id={compact ? "incoming-preview" : "incoming-full"} className="flex items-center gap-2 font-heading text-2xl tracking-tight"><Inbox className="size-5 text-primary" strokeWidth={1.5} aria-hidden="true" />Fresh off the phone</h2></div>{sources.data && !sources.error ? <Badge variant="outline">{sources.data.items.length}{sources.data.nextCursor ? "+" : ""} in review</Badge> : null}</div>
