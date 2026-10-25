@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/server/db/client";
 import { handleIncomingWhatsAppMessage } from "@/lib/server/whatsapp";
 import { getSessionState } from "@/lib/server/whatsapp-web";
+import type { Seller } from "@/lib/contracts/records";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
     const messageId = body.messageId || `msg_reprocess_${Date.now()}`;
 
     const db = await getDb();
-    const seller = await db.collection("sellers").findOne({});
+    const seller = await db.collection<Seller>("sellers").findOne({});
     if (!seller) {
       return NextResponse.json({ ok: false, error: "No seller found" }, { status: 404 });
     }
