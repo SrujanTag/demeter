@@ -1,15 +1,13 @@
-import { defineConfig, configs } from "eslint/config";
-import nextPlugin from "@next/eslint-plugin-next";
+import nextConfig from "eslint-config-next";
 
-export default defineConfig([
-  ...configs.recommended,
+const config = [
+  ...nextConfig,
   {
-    plugins: {
-      "@next/next": nextPlugin,
-    },
     rules: {
-      ...nextPlugin.configs.recommended.rules,
-      ...nextPlugin.configs["core-web-vitals"].rules,
+      "react-hooks/set-state-in-effect": "warn",
+      "react/no-unescaped-entities": "off",
     },
   },
-]);
+];
+
+export default config;
