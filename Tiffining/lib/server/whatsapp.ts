@@ -5,6 +5,7 @@ import { getDb } from "@/lib/server/db/client";
 import { sourceSchema, type Customer, type Proposal, type Seller, type Source } from "@/lib/contracts/records";
 import { payloadHash } from "@/lib/server/receipts";
 import { executeIntelligenceOperation } from "@/lib/server/ai/analyze";
+import type { ClassificationRecord } from "@/lib/server/ai/runs";
 
 export type WhatsAppConfig = {
   sellerId: string;
@@ -286,9 +287,9 @@ export async function handleIncomingWhatsAppMessage(payload: {
         }
       } else {
         // Only dismiss if the classification was explicitly unsupported/no_change
-        const isUnsupported = analysis.classificationId && await db.collection("classifications").findOne({
+        const isUnsupported = analysis.classificationId && await db.collection<ClassificationRecord>("classifications").findOne({
           _id: analysis.classificationId,
-          "answers.intent.choice": { $in: ["unsupported", "no_change"] }
+          intent: { $in: ["unsupported", "no_change"] }
         });
 
         if (isUnsupported) {
