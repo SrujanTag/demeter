@@ -403,4 +403,4 @@ Tiffining exposes 53 business operations with complete OpenAPI 3.1 specification
 
 ## License
 
-This project was developed for the **NVIDIA NIM AI Hackathon**. Licensed under the [MIT License](LICENSE).
+This project was developed for the **Nebius x NVIDIA Global AI Hackathon**. Licensed under the [MIT License](LICENSE).
