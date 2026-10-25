@@ -75,7 +75,6 @@ graph TD
 ### 3.1 Message-to-Packing Sheet Pipeline
 
 The lifecycle of an order change from raw message to kitchen delivery:
-
 ```mermaid
 sequenceDiagram
     autonumber
@@ -95,9 +94,9 @@ sequenceDiagram
     Owner->>Core: Opens Review Workbench & clicks "Preview Effect"
     Core-->>Owner: Side-by-side calendar diff (1 -> 2 meals) + cryptographic previewHash
     Owner->>Core: Approves Proposal (provides previewHash)
-    Core->>DB: Verifies previewHash; atomically commits Daily Override
+    Core->>DB: Verifies previewHash, then atomically commits Daily Override
     Owner->>Core: Finalizes Daily Packing Sheet
-    Core->>DB: Validates 0 pending reviews; saves immutable Sheet (REV-1)
+    Core->>DB: Validates 0 pending reviews, then saves immutable Sheet (REV-1)
     Core-->>Driver: Generates Building-clustered Dispatch Route & CSV export
 ```
 
