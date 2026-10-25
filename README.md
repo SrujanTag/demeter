@@ -1,6 +1,6 @@
 #  Demeter— Intelligent Meal & Tiffin Kitchen Management Platform
  *Named after Demeter, the Greek goddess of grain and harvest, who made sure no one went hungry.*
-> **Tiffining** is a production-grade, full-stack kitchen management platform purpose-built for independent home-food and tiffin businesses. Built with **Next.js 16 (App Router)**, **React 19**, **MongoDB Atlas (ACID Transactions)**, **Better-Auth**, and a two-stage **NVIDIA NIM AI pipeline** (Gemma 2 27B + Nemotron 70B), it bridges messy customer messages, recurring subscriptions, cryptographic approvals, immutable packing sheets, dispatch route logistics, and monthly billing.
+> **Demeter** is a production-grade, full-stack kitchen management platform purpose-built for independent home-food and tiffin businesses. Built with **Next.js 16 (App Router)**, **React 19**, **MongoDB Atlas (ACID Transactions)**, **Better-Auth**, and a two-stage **NVIDIA NIM AI pipeline** (Gemma 2 27B + Nemotron 70B), it bridges messy customer messages, recurring subscriptions, cryptographic approvals, immutable packing sheets, dispatch route logistics, and monthly billing.
 
 ---
 
@@ -39,8 +39,8 @@ Independent home tiffin kitchens serve between 15 to 100 regular subscribers who
 * **Costly Errors**: A missed cancellation results in cooked food waste; a missed addition leaves a hungry customer.
 * **End-of-Month Billing Nightmare**: Manually counting meals by scrolling through weeks of WhatsApp chat histories causes billing delays and payment disputes.
 
-### The Tiffining Solution
-Tiffining implements a strict **Propose-and-Review** paradigm:
+### The Demeter Solution
+Demeter implements a strict **Propose-and-Review** paradigm:
 1. **Models Propose**: NVIDIA NIM models parse incoming messages, extract structured order operations, and highlight exact evidence spans.
 2. **Humans Approve**: The kitchen owner reviews a side-by-side before-and-after calendar preview and approves with a single click. Every approval is cryptographically verified against state drift (`previewHash`).
 3. **Deterministic Math Calculates**: Meal quantities, customer allocations, delivery rosters, and monthly invoices are computed with deterministic TypeScript functions — never guessed by LLMs.
@@ -121,7 +121,7 @@ flowchart LR
 
 ### 3.3 NVIDIA NIM Two-Stage AI Pipeline
 
-Tiffining decouples extraction from verification into two distinct NVIDIA NIM stages with complete audit provenance:
+Demeter decouples extraction from verification into two distinct NVIDIA NIM stages with complete audit provenance:
 
 ```mermaid
 flowchart TD
@@ -170,7 +170,7 @@ flowchart TD
 
 ## 6. Database Architecture & Collections
 
-Tiffining uses 12 core collections with strict index constraints in MongoDB:
+Demeter uses 12 core collections with strict index constraints in MongoDB:
 
 ```mermaid
 erDiagram
@@ -318,7 +318,7 @@ To sign in quickly in your browser:
 
 ## 8. Testing & Verification
 
-Tiffining includes a comprehensive automated verification suite:
+Demeter includes a comprehensive automated verification suite:
 
 ### 1. Automated Backend End-to-End Pipeline
 Runs full pipeline validation (customer creation → source ingestion → proposal generation → preview hash calculation → atomic approval → idempotency duplicate test → packing sheet finalization):
@@ -360,7 +360,7 @@ pnpm build
 
 ## 9. REST API Reference Overview
 
-Tiffining exposes 53 business operations with complete OpenAPI 3.1 specification at [docs/openapi.json](file:///home/love/coding/nvidia-hackthon/Amillion/Tiffining/docs/openapi.json).
+Demeter exposes 53 business operations with complete OpenAPI 3.1 specification at [docs/openapi.json](file:///home/love/coding/nvidia-hackthon/Amillion/Tiffining/docs/openapi.json).
 
 ### Core Endpoints
 
