@@ -1,5 +1,5 @@
-# Tiffining — Intelligent Meal & Tiffin Kitchen Management Platform
-
+#  Demeter— Intelligent Meal & Tiffin Kitchen Management Platform
+ *Named after Demeter, the Greek goddess of grain and harvest, who made sure no one went hungry.*
 > **Tiffining** is a production-grade, full-stack kitchen management platform purpose-built for independent home-food and tiffin businesses. Built with **Next.js 16 (App Router)**, **React 19**, **MongoDB Atlas (ACID Transactions)**, **Better-Auth**, and a two-stage **NVIDIA NIM AI pipeline** (Gemma 2 27B + Nemotron 70B), it bridges messy customer messages, recurring subscriptions, cryptographic approvals, immutable packing sheets, dispatch route logistics, and monthly billing.
 
 ---
