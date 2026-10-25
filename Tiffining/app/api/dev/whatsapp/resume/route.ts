@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { restoreActiveWhatsAppSessions, getSessionState } from "@/lib/server/whatsapp-web";
 import { getDb } from "@/lib/server/db/client";
+import type { Seller } from "@/lib/contracts/records";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const db = await getDb();
-  const seller = await db.collection("sellers").findOne({});
+  const seller = await db.collection<Seller>("sellers").findOne({});
   if (!seller) {
     return NextResponse.json({ ok: false, error: "No seller found" }, { status: 404 });
   }
