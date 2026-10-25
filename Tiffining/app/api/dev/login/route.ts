@@ -3,6 +3,7 @@ import { makeSignature } from "better-auth/crypto";
 import { getAuth } from "@/lib/server/auth";
 import { getAuthConfig } from "@/lib/server/env";
 import { getDb } from "@/lib/server/db/client";
+import type { Seller } from "@/lib/contracts/records";
 
 export const runtime = "nodejs";
 
@@ -12,7 +13,7 @@ export async function POST(): Promise<NextResponse> {
   }
 
   const db = await getDb();
-  let seller = await db.collection("sellers").findOne({ status: "active" });
+  let seller = await db.collection<Seller>("sellers").findOne({ status: "active" });
 
   const userId = seller?.ownerUserId || "demo-owner";
 
@@ -35,7 +36,7 @@ export async function POST(): Promise<NextResponse> {
 
   // If no seller exists, provision a default demo seller
   if (!seller) {
-    const defaultSeller = {
+    const defaultSeller: Seller = {
       _id: crypto.randomUUID(),
       ownerUserId: userId,
       settings: {
@@ -51,7 +52,7 @@ export async function POST(): Promise<NextResponse> {
       schemaVersion: 1,
       createdAt: new Date().toISOString(),
     };
-    await db.collection("sellers").insertOne(defaultSeller);
+    await db.collection<Seller>("sellers").insertOne(defaultSeller);
     seller = defaultSeller;
   }
 
