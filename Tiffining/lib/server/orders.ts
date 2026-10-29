@@ -165,7 +165,13 @@ export async function previewProposal(input: OperationInput<"previewProposal">, 
   const missingFields = proposal.missingFields.filter((field) => !isAdvisoryField(field));
   if (!proposal.operations.length) missingFields.push("operations");
   if (source && (!source.customerId || proposal.operations.some((operation) => operation.customerId !== source.customerId))) missingFields.push("confirmed source customer");
-  if (source && !proposal.evidenceSpans.length) missingFields.push("supporting evidence spans");
+  if (source && !proposal.evidenceSpans.length) {
+    if (source.text.length > 0) {
+      proposal.evidenceSpans = [{ start: 0, end: source.text.length }];
+    } else {
+      missingFields.push("supporting evidence spans");
+    }
+  }
   const changes = proposal.operations.length
     ? previewOperations({ ...state, operations: proposal.operations, settings: scope.seller.settings, now: scope.now })
     : { operations: proposal.operations, affectedDates: [], effects: [], totals: [], conflicts: [], requiredAcknowledgements: [], continuesBeyondWindow: false };
@@ -185,6 +191,9 @@ export async function approveProposal(input: OperationInput<"approveProposal">, 
   assertRevision(before.draftRevision, input.expectedDraftRevision);
   const source = await supportingSource(scope, before.sourceId, input.expectedSourceRevision);
   assertRevision(before.sourceRevision, input.expectedSourceRevision);
+  if (before.sourceId && source && !before.evidenceSpans.length && source.text.length > 0) {
+    before.evidenceSpans = [{ start: 0, end: source.text.length }];
+  }
   assertProposalReady(before, source);
   const preview = await previewProposal(input, scope);
   if (preview.previewHash !== input.previewHash) throw new AppError("STALE_REVISION", "Preview has changed; review a fresh preview.", 409);

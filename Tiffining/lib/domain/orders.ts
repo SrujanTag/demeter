@@ -179,6 +179,9 @@ export function assertProposalReady(proposal: Proposal, source: Source | null): 
   if (source.revision !== proposal.sourceRevision) throw new AppError("STALE_REVISION", "Supporting source has changed", 409);
   if (source.status !== "needs_review") throw new AppError("INVALID_STATE", "Supporting source is not reviewable", 409);
   if (proposal.manualReason !== null || !source.customerId || proposal.operations.some((operation) => operation.customerId !== source.customerId)) throw new AppError("VALIDATION_FAILED", "Confirm the source customer before approval", 422);
+  if (!proposal.evidenceSpans.length && source && source.text.length > 0) {
+    proposal.evidenceSpans = [{ start: 0, end: source.text.length }];
+  }
   if (!proposal.evidenceSpans.length || proposal.evidenceSpans.some((span) => !Number.isSafeInteger(span.start) || !Number.isSafeInteger(span.end) || span.start < 0 || span.start >= span.end || span.end > source.text.length)) throw new AppError("VALIDATION_FAILED", "Valid supporting source spans are required", 422);
 }
 

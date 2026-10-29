@@ -74,7 +74,8 @@ export function approvalGate(input: {
   if (!input.proposal || !input.preview) return { allowed: false, reason: "Create a fresh preview first." };
   if (input.proposal.status !== "needs_review") return { allowed: false, reason: "Only drafts in review can be approved." };
   if (input.proposal.operations && input.proposal.operations.length === 0) return { allowed: false, reason: "Add at least one meal operation before approval." };
-  if (input.proposal.missingFields.length || input.preview.missingFields.length) return { allowed: false, reason: "Resolve every missing field before approval." };
+  const previewMissing = input.preview.missingFields.filter((f) => !isAdvisoryField(f) && f !== "supporting evidence spans");
+  if (input.proposal.missingFields.length || previewMissing.length) return { allowed: false, reason: "Resolve every missing field before approval." };
   if (input.stateRevision === null || !previewSafe({ preview: input.preview, proposal: input.proposal, stateRevision: input.stateRevision, serviceDate: input.serviceDate, previewServiceDate: input.serviceDate })) return { allowed: false, reason: "The preview is stale. Refresh it before approval." };
   if (input.preview.requiredAcknowledgements.includes("supersession") && !input.supersessionAcknowledged) return { allowed: false, reason: "Acknowledge the approvals being superseded." };
   return { allowed: true };
@@ -93,7 +94,11 @@ function displayDate(value: string) {
 
 function validEvidence(spans: Proposal["evidenceSpans"], source: Source | undefined) {
   if (!source) return [];
-  return spans.filter((span) => Number.isInteger(span.start) && Number.isInteger(span.end) && span.start >= 0 && span.start < span.end && span.end <= source.text.length);
+  const valid = spans.filter((span) => Number.isInteger(span.start) && Number.isInteger(span.end) && span.start >= 0 && span.start < span.end && span.end <= source.text.length);
+  if (valid.length === 0 && source.text.length > 0) {
+    return [{ start: 0, end: source.text.length }];
+  }
+  return valid;
 }
 
 function updateOperation(operations: OrderOperation[], index: number, patch: Partial<OrderOperation>): OrderOperation[] {
@@ -271,7 +276,8 @@ export function ProposalWorkspace({ sellerId, proposalId, serviceDate, onClose }
       serviceDate: targetDate,
       quantity: 1,
     };
-    setDraft({ ...draft, operations: [newOp] });
+    const defaultSpans = source && source.text.length > 0 ? [{ start: 0, end: source.text.length }] : [];
+    setDraft({ ...draft, operations: [newOp], evidenceSpans: defaultSpans });
     setSelectedOperation(0);
     setPreview(null);
   }
@@ -631,10 +637,16 @@ export function ProposalWorkspace({ sellerId, proposalId, serviceDate, onClose }
               {editMutation.isPending ? "Saving…" : "Save changes"}
             </Button>
           )}
+          {!gate.allowed && gate.reason ? (
+            <span className="text-xs text-amber-600 font-medium mr-2">{gate.reason}</span>
+          ) : !previewIsSafe && preview ? (
+            <span className="text-xs text-amber-600 font-medium mr-2">Please refresh preview before approving.</span>
+          ) : null}
           <Button
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm gap-2 px-5"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm gap-2 px-5 disabled:opacity-50"
             onClick={() => void approve()}
             disabled={writesBlocked || writesPending || approveMutation.isPending || !gate.allowed || !previewIsSafe}
+            title={!gate.allowed ? gate.reason : !previewIsSafe ? "Refresh preview" : ""}
           >
             {approveMutation.isPending ? "Approving…" : (
               <>
