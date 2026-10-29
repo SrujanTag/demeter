@@ -17,6 +17,7 @@ import {
   User,
   Utensils,
   AlertCircle,
+  Plus,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -64,7 +65,7 @@ export function uniqueApprovalIds(ids: readonly string[]): string[] {
 
 export function approvalGate(input: {
   preview: Pick<Preview, "proposalId" | "expectedStateRevision" | "expectedDraftRevision" | "sourceRevision" | "missingFields" | "requiredAcknowledgements"> | null;
-  proposal: Pick<Proposal, "_id" | "draftRevision" | "sourceRevision" | "status" | "missingFields"> | null;
+  proposal: (Pick<Proposal, "_id" | "draftRevision" | "sourceRevision" | "status" | "missingFields"> & { operations?: readonly OrderOperation[] }) | null;
   stateRevision: number | null;
   serviceDate: string;
   supersessionAcknowledged: boolean;
@@ -72,6 +73,7 @@ export function approvalGate(input: {
 }): { allowed: boolean; reason?: string } {
   if (!input.proposal || !input.preview) return { allowed: false, reason: "Create a fresh preview first." };
   if (input.proposal.status !== "needs_review") return { allowed: false, reason: "Only drafts in review can be approved." };
+  if (input.proposal.operations && input.proposal.operations.length === 0) return { allowed: false, reason: "Add at least one meal operation before approval." };
   if (input.proposal.missingFields.length || input.preview.missingFields.length) return { allowed: false, reason: "Resolve every missing field before approval." };
   if (input.stateRevision === null || !previewSafe({ preview: input.preview, proposal: input.proposal, stateRevision: input.stateRevision, serviceDate: input.serviceDate, previewServiceDate: input.serviceDate })) return { allowed: false, reason: "The preview is stale. Refresh it before approval." };
   if (input.preview.requiredAcknowledgements.includes("supersession") && !input.supersessionAcknowledged) return { allowed: false, reason: "Acknowledge the approvals being superseded." };
@@ -173,7 +175,7 @@ export function ProposalWorkspace({ sellerId, proposalId, serviceDate, onClose }
   
   const gate = approvalGate({
     preview: preview ? { ...preview, missingFields: preview.missingFields.filter((f) => !isAdvisoryField(f)) } : null,
-    proposal: currentProposal ? { ...currentProposal, missingFields: effectiveMissingFields } : null,
+    proposal: currentProposal ? { ...currentProposal, operations: draft?.operations ?? currentProposal.operations, missingFields: effectiveMissingFields } : null,
     stateRevision: stateRevisionAtPreview,
     serviceDate,
     supersessionAcknowledged,
@@ -257,6 +259,23 @@ export function ProposalWorkspace({ sellerId, proposalId, serviceDate, onClose }
     void previewDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProposal?._id, currentProposal?.draftRevision, preview, effectiveMissingFields.length]);
+
+  function addDefaultOperation() {
+    if (!draft || !currentProposal) return;
+    const customerId = source?.customerId ?? currentProposal.operations[0]?.customerId ?? customersQuery.data?.items[0]?._id ?? "";
+    const nextDay = new Date();
+    nextDay.setDate(nextDay.getDate() + 1);
+    const targetDate = nextDay.toISOString().slice(0, 10);
+    const newOp: OrderOperation = {
+      type: "set_daily_quantity",
+      customerId,
+      serviceDate: targetDate,
+      quantity: 1,
+    };
+    setDraft({ ...draft, operations: [newOp] });
+    setSelectedOperation(0);
+    setPreview(null);
+  }
 
   async function saveAndPreview() {
     if (!draft || !currentProposal || writesBlocked) return;
@@ -447,14 +466,35 @@ export function ProposalWorkspace({ sellerId, proposalId, serviceDate, onClose }
               {selected ? (
                 <OperationEditor operation={selected} aliases={aliases} onChange={changeSelectedOperation} />
               ) : (
-                <Alert>
-                  <AlertTitle>No operations</AlertTitle>
-                  <AlertDescription>This draft contains no proposed operations.</AlertDescription>
-                </Alert>
+                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-amber-900">No meal count specified</p>
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        The customer asked for a meal ("{source?.text ?? "Prepare lunch for tomorrow"}") but did not specify an exact quantity. Add an order operation below to set the meal count before approving.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                    onClick={addDefaultOperation}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add 1 meal for tomorrow
+                  </Button>
+                </div>
               )}
 
               {/* Status / Missing details notice */}
-              {effectiveMissingFields.length > 0 ? (
+              {draft.operations.length === 0 ? (
+                <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span>Click "Add 1 meal for tomorrow" above to set the meal count for approval.</span>
+                </div>
+              ) : effectiveMissingFields.length > 0 ? (
                 <FieldSet className="rounded-xl border border-amber-200 bg-amber-50/50 p-3">
                   <div className="flex items-center gap-2 text-xs font-semibold text-amber-800">
                     <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
