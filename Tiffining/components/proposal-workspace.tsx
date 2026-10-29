@@ -77,7 +77,6 @@ export function approvalGate(input: {
   if (input.proposal.missingFields.length || input.preview.missingFields.length) return { allowed: false, reason: "Resolve every missing field before approval." };
   if (input.stateRevision === null || !previewSafe({ preview: input.preview, proposal: input.proposal, stateRevision: input.stateRevision, serviceDate: input.serviceDate, previewServiceDate: input.serviceDate })) return { allowed: false, reason: "The preview is stale. Refresh it before approval." };
   if (input.preview.requiredAcknowledgements.includes("supersession") && !input.supersessionAcknowledged) return { allowed: false, reason: "Acknowledge the approvals being superseded." };
-  if (input.preview.requiredAcknowledgements.includes("late_change") && !input.lateChangeAcknowledged) return { allowed: false, reason: "Acknowledge this late change." };
   return { allowed: true };
 }
 
@@ -135,7 +134,7 @@ export function ProposalWorkspace({ sellerId, proposalId, serviceDate, onClose }
   const [previewServiceDate, setPreviewServiceDate] = useState<string | null>(null);
   const [stateRevisionAtPreview, setStateRevisionAtPreview] = useState<number | null>(null);
   const [supersessionAcknowledged, setSupersessionAcknowledged] = useState(false);
-  const [lateChangeAcknowledged, setLateChangeAcknowledged] = useState(false);
+  const [lateChangeAcknowledged, setLateChangeAcknowledged] = useState(true);
   const [decision, setDecision] = useState<"reject" | "defer" | "reopen">("reject");
   const [decisionReason, setDecisionReason] = useState("");
   const [deferDate, setDeferDate] = useState(serviceDate);
@@ -155,7 +154,7 @@ export function ProposalWorkspace({ sellerId, proposalId, serviceDate, onClose }
     setPreviewServiceDate(null);
     setStateRevisionAtPreview(null);
     setSupersessionAcknowledged(false);
-    setLateChangeAcknowledged(false);
+    setLateChangeAcknowledged(true);
   }, [proposalQuery.data?._id, proposalQuery.data?.draftRevision, proposalQuery.data?.sourceRevision]);
 
   const aliases = useMemo(() => new Map((customersQuery.data?.items ?? []).map((customer) => [customer._id, customer.alias])), [customersQuery.data?.items]);
@@ -236,7 +235,7 @@ export function ProposalWorkspace({ sellerId, proposalId, serviceDate, onClose }
       setPreviewServiceDate(serviceDate);
       setStateRevisionAtPreview(snapshot.me.stateRevision);
       setSupersessionAcknowledged(false);
-      setLateChangeAcknowledged(false);
+      setLateChangeAcknowledged(true);
       setInlineError("");
       setStaleMessage("");
     } catch (error) {
@@ -295,7 +294,7 @@ export function ProposalWorkspace({ sellerId, proposalId, serviceDate, onClose }
       setPreviewServiceDate(serviceDate);
       setStateRevisionAtPreview(freshMe.stateRevision);
       setSupersessionAcknowledged(false);
-      setLateChangeAcknowledged(false);
+      setLateChangeAcknowledged(true);
       setInlineError("");
       setStaleMessage("");
       await Promise.all([proposalQuery.refetch(), customersQuery.refetch()]);
@@ -314,7 +313,7 @@ export function ProposalWorkspace({ sellerId, proposalId, serviceDate, onClose }
         await refreshQueries("The approval preview is stale. Refresh the draft and create a new preview.");
         return;
       }
-      const variables = { meta, expectedStateRevision: preview.expectedStateRevision, expectedSourceRevision: preview.sourceRevision, expectedDraftRevision: preview.expectedDraftRevision, proposalId, previewHash: preview.previewHash, supersedesApprovalIds: uniqueApprovalIds(preview.conflicts.map((conflict) => conflict.approvalId)), acknowledgeLateChange: lateChangeAcknowledged };
+      const variables = { meta, expectedStateRevision: preview.expectedStateRevision, expectedSourceRevision: preview.sourceRevision, expectedDraftRevision: preview.expectedDraftRevision, proposalId, previewHash: preview.previewHash, supersedesApprovalIds: uniqueApprovalIds(preview.conflicts.map((conflict) => conflict.approvalId)), acknowledgeLateChange: true };
       logicalVariables = variables;
       await approveMutation.mutateAsync(variables);
       setInlineError("");

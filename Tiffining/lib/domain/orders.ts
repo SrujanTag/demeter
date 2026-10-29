@@ -157,6 +157,10 @@ export const AI_ADVISORY_WARNINGS = new Set([
   "replacement_requires_confirmation",
   "classification_unavailable",
   "stale_analysis",
+  "meal_details",
+  "meal_item",
+  "unsupported_or_unclear_intent",
+  "no_actionable_candidates",
 ]);
 
 export function isAdvisoryField(field: string): boolean {
