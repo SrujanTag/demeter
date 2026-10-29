@@ -164,16 +164,19 @@ export async function sourceSnapshot(db: Db, seller: Seller, sourceId: string, s
   const { erasurePending, ...safeSource } = source;
   void erasurePending;
   const validated = sourceSchema.parse(safeSource);
-  if (!validated.customerId) throw new AppError("INVALID_STATE", "Select an active source customer before analysis.", 409);
-  const customer = found(await db.collection<Customer>("customers").findOne({ _id: validated.customerId, sellerId: seller._id, status: "active" }, { session }));
-  const plans = await db.collection<Plan>("plans").find({ sellerId: seller._id, customerId: validated.customerId }, { session }).limit(101).toArray();
+  const customer = validated.customerId
+    ? await db.collection<Customer>("customers").findOne({ _id: validated.customerId, sellerId: seller._id, status: "active" }, { session })
+    : null;
+  const plans = validated.customerId
+    ? await db.collection<Plan>("plans").find({ sellerId: seller._id, customerId: validated.customerId }, { session }).limit(101).toArray()
+    : [];
   const drafts = await db.collection<Proposal>("proposals").find({ sellerId: seller._id, sourceId }, { session }).limit(101).toArray();
   if (plans.length > 100 || drafts.length > 100) throw new AppError("INVALID_STATE", "Source context exceeds the analysis limit.", 409);
   const modelSource: ModelSourceContext = {
     text: validated.text,
     sentAt: validated.sentAt,
     timezone: seller.settings.timezone,
-    alias: customer.alias,
+    alias: customer?.alias ?? "Unassigned Customer",
     schedule: plans.map(({ startDate, endDate, quantities }) => ({ startDate, endDate, quantities })),
   };
   return { seller, source: validated, customer, plans, drafts, modelSource };
@@ -246,7 +249,8 @@ export async function reserveAnalysis(
         const lockId = `ai-lock-${seller._id}`;
         const admissions = db.collection<AiAdmission>("aiAdmissions");
         const lock = await admissions.findOne({ _id: lockId }, { session });
-        if (lock?.leaseRunId && lock.leaseRunId !== retryOfRunId) {
+        const leaseExpired = lock?.leaseDeadline ? Date.parse(lock.leaseDeadline) <= Date.now() : false;
+        if (lock?.leaseRunId && lock.leaseRunId !== retryOfRunId && !leaseExpired) {
           throw new AppError("AI_BUSY", "Another analysis holds the seller admission slot. Inspect its run before retrying.", 429);
         }
         if (lock?.leaseRunId === retryOfRunId && retryRun && (effectiveRunState(retryRun) === "unknown" || retryRun.unknownSpend) && !acknowledgeUnknownSpend) {

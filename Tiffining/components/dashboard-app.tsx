@@ -45,7 +45,7 @@ import { dateSchema } from "@/lib/contracts/common";
 import { ClientError } from "@/lib/client/api";
 import type { BackendOutput } from "@/lib/contracts/backend";
 import type { ForecastRun } from "@/lib/contracts/history";
-import { newCommandMeta, analyzeSourceMutationOptions, finalizeSheetMutationOptions, importSourcesMutationOptions, sourceDispositionMutationOptions } from "@/lib/client/mutations";
+import { newCommandMeta, analyzeSourceMutationOptions, correctSourceMutationOptions, finalizeSheetMutationOptions, importSourcesMutationOptions, sourceDispositionMutationOptions } from "@/lib/client/mutations";
 import { capabilitiesQueryOptions, customersQueryOptions, dayQueryOptions, forecastsQueryOptions, proposalsQueryOptions, settingsQueryOptions, sourceQueryOptions, sourcesQueryOptions } from "@/lib/client/queries";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -83,6 +83,7 @@ function DashboardContent({ auth }: { auth: Me }) {
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [proposalId, setProposalId] = useState<string | null>(null);
   const [consentSourceId, setConsentSourceId] = useState<string | null>(null);
+  const [consentCustomerId, setConsentCustomerId] = useState<string | null>(null);
   const [intakeText, setIntakeText] = useState("");
   const [intakeSentAt, setIntakeSentAt] = useState(new Date().toISOString().slice(0, 16));
   const [intakeCustomerId, setIntakeCustomerId] = useState<string | null>(null);
@@ -111,6 +112,7 @@ function DashboardContent({ auth }: { auth: Me }) {
   const sourceDetail = useQuery({ ...sourceQueryOptions(sellerId, { sourceId: sourceId ?? "pending" }), enabled: !!sourceId });
 
   const importMutation = useMutation(importSourcesMutationOptions(queryClient, sellerId));
+  const correctSourceMutation = useMutation(correctSourceMutationOptions(queryClient, sellerId));
   const analyzeMutation = useMutation(analyzeSourceMutationOptions(queryClient, sellerId));
   const sourceDisposition = useMutation(sourceDispositionMutationOptions(queryClient, sellerId));
   const finalizeMutation = useMutation(finalizeSheetMutationOptions(queryClient, sellerId));
@@ -140,12 +142,25 @@ function DashboardContent({ auth }: { auth: Me }) {
     const target = selectedSource;
     if (!target) return;
     try {
+      let expectedSourceRevision = target.revision;
+      if (consentCustomerId && consentCustomerId !== target.customerId) {
+        await correctSourceMutation.mutateAsync({
+          meta: newCommandMeta(),
+          expectedStateRevision: auth.stateRevision,
+          expectedSourceRevision: target.revision,
+          sourceId: target._id,
+          customerId: consentCustomerId,
+          reason: "Customer assigned before AI analysis",
+        });
+        expectedSourceRevision += 1;
+      }
       const result = await analyzeMutation.mutateAsync({
-        meta: newCommandMeta(), expectedStateRevision: auth.stateRevision, expectedSourceRevision: target.revision,
+        meta: newCommandMeta(), expectedStateRevision: auth.stateRevision, expectedSourceRevision,
         expectedDraftRevisions: (proposals.data?.items ?? []).filter((proposal) => proposal.sourceId === target._id).map((proposal) => ({ proposalId: proposal._id, draftRevision: proposal.draftRevision })),
         consentAcknowledged: true, sourceId: target._id,
       });
       setConsentSourceId(null);
+      setConsentCustomerId(null);
       setSourceId(null);
 
       if (result.state === "failed") {
@@ -234,6 +249,32 @@ function DashboardContent({ auth }: { auth: Me }) {
               <li>Original message text and timestamps remain permanently attached.</li>
             </ul>
           </div>
+
+          {selectedSource && !selectedSource.customerId ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="consent-customer" className="text-xs font-medium text-foreground">
+                Assign to customer (optional):
+              </Label>
+              <Select
+                items={(customers.data?.items ?? []).map((customer) => ({ value: customer._id, label: customer.alias }))}
+                value={consentCustomerId ?? ""}
+                onValueChange={(value) => setConsentCustomerId(value || null)}
+              >
+                <SelectTrigger id="consent-customer" className="w-full">
+                  <SelectValue placeholder="Select customer (or leave unassigned)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {(customers.data?.items ?? []).map((customer) => (
+                      <SelectItem key={customer._id} value={customer._id}>
+                        {customer.alias}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
 
           {analyzeMutation.isPending ? (
             <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/10 p-3 text-sm text-primary animate-pulse">

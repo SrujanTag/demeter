@@ -22,6 +22,7 @@ async function main() {
   const cookie = (await readFile(cookieFile, "utf8")).trim();
   if (!cookie || cookie.includes("\n") || cookie.length > 16_384) throw new Error("Cookie file must contain a single bounded Cookie header value");
   async function request<K extends OperationName>(operation: K, data: Record<string, unknown> = {}) {
+    console.log(`[Smoke] Invoking operation: ${operation}`);
     const endpoint = endpointFor(operation);
     const payload = { ...data };
     const path = endpoint.path.replace(/\{([^}]+)\}/g, (_, key: string) => {
@@ -39,9 +40,18 @@ async function main() {
     if (endpoint.method === "GET") for (const [key, value] of Object.entries(payload)) url.searchParams.set(key, String(value));
     else headers.set("Content-Type", "application/json");
     const response = await fetch(url, { method: endpoint.method, headers, redirect: "error", signal: AbortSignal.timeout(30_000), ...(endpoint.method === "GET" ? {} : { body: JSON.stringify(payload) }) });
-    const result = resultSchema(outputSchemas[operation]).parse(await response.json());
-    if (!result.ok) throw new Error(`${operation}: ${result.error.code}`);
-    return result.data;
+    const text = await response.text();
+    if (!text) {
+      console.error(`[Smoke] Empty response for ${operation}, HTTP status: ${response.status}`);
+      throw new Error(`Empty response for ${operation}, status ${response.status}`);
+    }
+    const rawJson = JSON.parse(text);
+    const result = resultSchema(outputSchemas[operation]).safeParse(rawJson);
+    if (!result.success || !result.data.ok) {
+      console.error(`Request failed for ${operation}:`, JSON.stringify(rawJson, null, 2));
+      throw new Error(`${operation}: ${rawJson?.error?.code || "FAILED"}`);
+    }
+    return result.data.data;
   }
   // Parse at the call site to retain concrete schema types across the script's generic helper.
   const me = outputSchemas.me.parse(await request("me"));
@@ -70,4 +80,4 @@ async function main() {
   if (sheet.total !== day.total) throw new Error("Sheet total mismatch");
   console.log("API write-demo passed: source → review → approval → same-key retry → exact day → immutable sheet. Fictional records were retained.");
 }
-void main().catch(() => { console.error("Backend smoke failed. Check server/session/configuration; private cookie and response diagnostics are omitted."); process.exitCode = 1; });
+void main().catch((err) => { console.error("Backend smoke failed:", err); process.exitCode = 1; });

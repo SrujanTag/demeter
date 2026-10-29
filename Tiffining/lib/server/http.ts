@@ -93,6 +93,7 @@ export function getErrorEnvelope(error: unknown, requestId: string): { status: n
     };
   }
   if (error instanceof z.ZodError) {
+    if (process.env.APP_ENV === "development") console.error("[ZodError]", error.issues);
     return {
       status: 422,
       result: { ok: false, error: { code: "VALIDATION_FAILED", message: "Input validation failed.", retryable: false }, meta: { requestId } },
